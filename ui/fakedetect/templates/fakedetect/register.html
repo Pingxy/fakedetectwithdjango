@@ -1,0 +1,154 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 深度伪造图片检测系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-image: url('https://images.unsplash.com/photo-1518932945647-7a1c969f8be2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .login-container {
+            max-width: 480px;
+            width: 100%;
+            padding: 40px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .login-title-main {
+            font-size: 1.8rem;
+            font-weight: 500;
+            color: #343a40;
+            margin-bottom: 15px;
+        }
+        .login-title-sub {
+            font-size: 1.3rem;
+            color: #6c757d;
+            margin-bottom: 35px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .form-group label {
+            font-weight: 500;
+            margin-bottom: 5px;
+            display: block;
+            color: #495057;
+        }
+        .form-control {
+            height: calc(1.5em + 1rem + 2px);
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+        }
+        .btn-register {
+            width: 100%;
+            background-color: #28a745;
+            border-color: #28a745;
+            padding: 12px;
+            font-size: 1.1rem;
+            border-radius: 6px;
+            transition: background-color 0.3s ease;
+        }
+        .btn-register:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 0.95rem;
+            color: #6c757d;
+        }
+        .login-link a {
+            color: #0d6efd;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+        .form-text.text-muted ul {
+            padding-left: 20px;
+            margin-bottom: 0;
+            font-size: 0.85rem;
+            color: #6c757d !important;
+        }
+        .form-text.text-muted {
+            font-size: 0.85rem;
+            color: #6c757d !important;
+            margin-top: 5px;
+        }
+        .alert-danger {
+            text-align: left;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1 class="login-title-main">创建您的账户</h1>
+        <h2 class="login-title-sub">加入深度伪造图片检测系统</h2>
+        <form method="post">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                {{ error }}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="id_username">用户名</label>
+                {{ form.username.errors }}
+                <input type="text" name="username" maxlength="150" autofocus required id="id_username" class="form-control" placeholder="设置您的用户名">
+                <small class="form-text text-muted">必填。150字符以内，仅限字母、数字和@/./+/-/_</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="id_password1">密码</label>
+                {{ form.password1.errors }}
+                <input type="password" name="password1" required id="id_password1" class="form-control" placeholder="设置您的密码">
+                <small class="form-text text-muted">
+                    <ul>
+                        <li>密码不能与用户名太相似。</li>
+                        <li>密码至少包含8个字符。</li>
+                        <li>密码不能是常用密码。</li>
+                        <li>密码不能完全是数字。</li>
+                    </ul>
+                </small>
+            </div>
+            
+            <div class="form-group">
+                <label for="id_password2">确认密码</label>
+                {{ form.password2.errors }}
+                <input type="password" name="password2" required id="id_password2" class="form-control" placeholder="请再次输入密码">
+                <small class="form-text text-muted">请输入与上方相同的密码以确认。</small>
+            </div>
+            
+            <button type="submit" class="btn btn-success btn-register">注册</button>
+        </form>
+        <div class="login-link">
+            已有账号? <a href="{% url 'login' %}">直接登录</a>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

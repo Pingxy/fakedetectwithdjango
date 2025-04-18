@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>检测记录详情 - 图像检测系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #f8f9fa;
+            padding-top: 20px;
+        }
+        .header {
+            margin-bottom: 30px;
+        }
+        .card {
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            background-color: #f1f8ff;
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: bold;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .result-card {
+            transition: transform 0.3s;
+        }
+        .result-card:hover {
+            transform: translateY(-5px);
+        }
+        .result-header {
+            padding: 10px;
+            font-weight: bold;
+            border-radius: 5px 5px 0 0;
+        }
+        .fake-header {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+        .real-header {
+            background-color: #d1e7dd;
+            color: #0a3622;
+        }
+        .prob-bar {
+            height: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            background-color: #e9ecef;
+        }
+        .prob-value {
+            height: 100%;
+            border-radius: 5px;
+        }
+        .summary-box {
+            background-color: #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .summary-title {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #cbd5e0;
+            padding-bottom: 10px;
+        }
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .navbar {
+            margin-bottom: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-back {
+            margin-bottom: 20px;
+        }
+        .pagination {
+            margin-top: 30px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{% url 'index' %}">图像检测系统</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'index' %}">首页</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{% url 'history' %}">历史记录</a>
+                        </li>
+                    </ul>
+                    <span class="navbar-text">
+                        你好，{{ request.user.username }} | <a href="{% url 'logout' %}" class="text-white text-decoration-none">退出</a>
+                    </span>
+                </div>
+            </div>
+        </nav>
+
+        <a href="{% url 'history' %}" class="btn btn-outline-primary btn-back">
+            <i class="bi bi-arrow-left"></i> 返回历史记录
+        </a>
+
+        <div class="header">
+            <h1 class="text-center">检测记录详情</h1>
+            <p class="text-center text-muted">记录时间: {{ record.detection_time|date:"Y-m-d H:i:s" }}</p>
+        </div>
+
+        {% if error %}
+            <div class="alert alert-danger">
+                <h4>错误</h4>
+                <p>{{ error }}</p>
+                <hr>
+                <p class="mb-0">原始数据: {{ record.result }}</p>
+            </div>
+        {% else %}
+            <div class="summary-box">
+                <h3 class="summary-title">检测摘要</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="stats-item">
+                            <span>使用模型:</span>
+                            <span class="fw-bold">{{ result_data.model_used|default:"未知" }}</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>处理时间:</span>
+                            <span class="fw-bold">{{ result_data.processing_time|default:"未知" }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="stats-item">
+                            <span>图片总数:</span>
+                            <span class="fw-bold">{{ result_data.results|length }}</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>伪造图片数:</span>
+                            <span class="fw-bold text-danger">
+                                {% with fake_count=0 %}
+                                    {% for item in result_data.results %}
+                                        {% if item.prediction == 'Fake' %}
+                                            {% with fake_count=fake_count|add:1 %}{% endwith %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {{ fake_count }}
+                                {% endwith %}
+                            </span>
+                        </div>
+                        <div class="stats-item">
+                            <span>真实图片数:</span>
+                            <span class="fw-bold text-success">
+                                {% with real_count=0 %}
+                                    {% for item in result_data.results %}
+                                        {% if item.prediction == 'Real' %}
+                                            {% with real_count=real_count|add:1 %}{% endwith %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {{ real_count }}
+                                {% endwith %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>检测结果</h3>
+            <div class="row">
+                {% for result in result_data.results %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card result-card">
+                            <div class="result-header {% if result.prediction == 'Fake' %}fake-header{% else %}real-header{% endif %}">
+                                {{ result.prediction }} 
+                                {% if result.prediction == 'Fake' %}
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                {% else %}
+                                    <i class="bi bi-check-circle-fill"></i>
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">{{ result.filename }}</h5>
+                                <p class="card-text">
+                                    概率值: {{ result.probability|floatformat:4 }}
+                                </p>
+                                <div class="prob-bar">
+                                    <div 
+                                        class="prob-value"
+                                        style="
+                                            width: {% widthratio result.probability 1 100 %}%; 
+                                            background-color: 
+                                                {% if result.prediction == 'Fake' %}
+                                                    #dc3545
+                                                {% else %}
+                                                    #198754
+                                                {% endif %};
+                                        "
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            没有找到任何结果数据
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- 分页功能 - 可以在后期添加 -->
+            {% if result_data.results|length > 30 %}
+                <nav aria-label="结果分页" class="pagination">
+                    <ul class="pagination">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">上一页</a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="#">下一页</a>
+                        </li>
+                    </ul>
+                </nav>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

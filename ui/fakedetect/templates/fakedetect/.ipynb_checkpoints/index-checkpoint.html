@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake Image Detection</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --light-gray: #f5f5f5;
+            --border-color: #ddd;
+            --text-color: #333;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+            background-color: #fafafa;
+            padding: 30px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .main-content {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .upload-section {
+            flex: 1;
+        }
+        
+        .params-section {
+            flex: 1;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: var(--light-gray);
+            border: 1px solid var(--border-color);
+        }
+        
+        .drop-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .drop-area:hover {
+            background-color: var(--light-gray);
+            border-color: var(--primary-color);
+        }
+        
+        .drop-area p {
+            margin: 0;
+            font-size: 16px;
+            color: #777;
+        }
+        
+        .drop-area i {
+            font-size: 40px;
+            color: #999;
+            margin-bottom: 10px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* 改进图片预览的用户体验 */
+        .image-preview {
+            margin-top: 20px;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .image-preview:hover::after {
+            content: "Click to remove";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            border-radius: 8px;
+        }
+        
+        .image-preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+        
+        .image-preview:hover img {
+            filter: brightness(0.8);
+        }
+        
+        /* 数据集预览样式 */
+        .dataset-preview {
+            margin-top: 20px;
+        }
+        
+        .dataset-preview-title {
+            font-weight: 500;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        
+        .dataset-preview-images {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        
+        .dataset-preview-images img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 4px;
+            box-shadow: var(--shadow);
+        }
+        
+        .dataset-info {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: var(--light-gray);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .form-group label {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .form-group select {
+            flex: 1.5;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: white;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+        }
+        
+        .checkbox-group label {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .error-message {
+            color: var(--danger-color);
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .btn-predict {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+            display: block;
+            margin: 0 auto;
+            width: 200px;
+        }
+        
+        .btn-predict:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .btn-predict:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        #results {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: var(--light-gray);
+            min-height: 60px;
+            text-align: center;
+        }
+        
+        /* 修复图表高度问题 */
+        #chart-container {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: var(--shadow);
+            height: 400px; /* 添加固定高度 */
+        }
+        
+        /* 进度条样式 */
+        .progress-container {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: var(--light-gray);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: var(--primary-color);
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        
+        /* 评估结果样式 */
+        .evaluation-results {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .metric-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+            text-align: center;
+            min-width: 150px;
+            flex: 1;
+        }
+        
+        .metric-title {
+            font-size: 16px;
+            color: var(--text-color);
+            margin-bottom: 10px;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+        
+        /* 上传模式切换 */
+        .upload-mode-selector {
+            display: flex;
+            margin-bottom: 20px;
+            background-color: var(--light-gray);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .upload-mode-option {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-mode-option.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        /* 数据集上传区域 */
+        .dataset-upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .dataset-upload-area:hover {
+            background-color: var(--light-gray);
+            border-color: var(--primary-color);
+        }
+        
+        /* 文件夹结构预览 */
+        .folder-structure {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: var(--light-gray);
+            border-radius: 8px;
+            font-family: monospace;
+        }
+        
+        .folder-structure ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        
+        .folder-structure li {
+            position: relative;
+            padding: 3px 0;
+        }
+        
+        .folder-structure li::before {
+            content: "📁";
+            margin-right: 5px;
+        }
+        
+        .folder-structure li.file::before {
+            content: "📄";
+        }
+        
+        /* 切换按钮 */
+        .tab-container {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        .tab-button {
+            padding: 10px 20px;
+            background-color: var(--light-gray);
+            border: none;
+            cursor: pointer;
+            flex: 1;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-button:first-child {
+            border-top-left-radius: 5px;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .tab-button:last-child {
+            border-top-right-radius: 5px;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .tab-button.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        /* Font Awesome icons (using Unicode) */
+        .icon-upload:before {
+            content: "\f093";
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fake Image Detection</h1>
+        
+        <!-- 上传模式选择器 -->
+        <div class="tab-container">
+            <button id="single-image-tab" class="tab-button active">Single Image</button>
+            <button id="dataset-tab" class="tab-button">Dataset</button>
+        </div>
+        
+        <div id="single-image-content">
+            <div class="main-content">
+                <div class="upload-section">
+                    <div class="section-title">Upload Image</div>
+                    
+                    <div class="drop-area" id="drop-area">
+                        <i class="icon-upload">📁</i>
+                        <p>Drag and drop an image here, or click to upload</p>
+                        <input type="file" id="file-input" class="hidden" accept="image/*">
+                    </div>
+                    
+                    <div id="image-preview" class="image-preview hidden">
+                        <img id="preview-img" src="" alt="Preview">
+                    </div>
+                </div>
+                
+                <div class="params-section">
+                    <div class="section-title">Image Preprocessing Parameters</div>
+                    
+                    <div class="form-group">
+                        <label for="model-select">Select Model:</label>
+                        <select id="model-select" name="model">
+                            <!-- 模型选项将通过后端动态填充 -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group checkbox-group">
+                        <label for="center-crop">Enable Center Crop:</label>
+                        <input type="checkbox" id="center-crop" name="center_crop" checked>
+                    </div>
+                    
+                    <div class="form-group checkbox-group">
+                        <label for="resize">Enable Resize:</label>
+                        <input type="checkbox" id="resize" name="resize" checked>
+                    </div>
+                    
+                    <div id="preprocessing-error" class="error-message hidden">
+                        At least one preprocessing option must be selected.
+                    </div>
+                </div>
+            </div>
+            
+            <button id="predict-btn" class="btn-predict" disabled>Predict</button>
+            
+            <div id="results">Upload an image and click "Predict" to analyze</div>
+            
+            <div id="chart-container" class="hidden">
+                <canvas id="chart"></canvas>
+            </div>
+        </div>
+        
+        <div id="dataset-content" class="hidden">
+            <div class="main-content">
+                <div class="upload-section">
+                    <div class="section-title">Upload Dataset</div>
+                    
+                    <div class="dataset-upload-area" id="dataset-upload-area">
+                        <i class="icon-upload">📁</i>
+                        <p>Select a folder containing 'real' and 'fake' subfolders</p>
+                        <input type="file" id="folder-input" class="hidden" webkitdirectory directory multiple>
+                    </div>
+                    
+                    <div id="dataset-preview" class="dataset-preview hidden">
+                        <div class="dataset-preview-title">Real Images Preview:</div>
+                        <div id="real-images-preview" class="dataset-preview-images">
+                            <!-- Real images will be displayed here -->
+                        </div>
+                        
+                        <div class="dataset-preview-title" style="margin-top: 15px;">Fake Images Preview:</div>
+                        <div id="fake-images-preview" class="dataset-preview-images">
+                            <!-- Fake images will be displayed here -->
+                        </div>
+                        
+                        <div id="dataset-info" class="dataset-info">
+                            <!-- Dataset information will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="params-section">
+                    <div class="section-title">Dataset Evaluation Parameters</div>
+                    
+                    <div class="form-group">
+                        <label for="dataset-model-select">Select Model:</label>
+                        <select id="dataset-model-select" name="dataset-model">
+                            <!-- 模型选项将通过后端动态填充 -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group checkbox-group">
+                        <label for="dataset-center-crop">Enable Center Crop:</label>
+                        <input type="checkbox" id="dataset-center-crop" name="dataset_center_crop" checked>
+                    </div>
+                    
+                    <div class="form-group checkbox-group">
+                        <label for="dataset-resize">Enable Resize:</label>
+                        <input type="checkbox" id="dataset-resize" name="dataset_resize" checked>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="batch-size">Batch Size:</label>
+                        <select id="batch-size" name="batch-size">
+                            <option value="1">1</option>
+                            <option value="4" selected>4</option>
+                            <option value="8">8</option>
+                            <option value="16">16</option>
+                        </select>
+                    </div>
+                    
+                    <div id="dataset-preprocessing-error" class="error-message hidden">
+                        At least one preprocessing option must be selected.
+                    </div>
+                </div>
+            </div>
+            
+            <button id="evaluate-btn" class="btn-predict" disabled>Evaluate Dataset</button>
+            
+            <div id="progress-container" class="progress-container hidden">
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <div id="progress-text" class="progress-text">Processing: 0%</div>
+            </div>
+            
+            <div id="dataset-results">Upload a dataset and click "Evaluate Dataset" to analyze</div>
+            
+            <div id="evaluation-results" class="evaluation-results hidden">
+                <div class="metric-card">
+                    <div class="metric-title">Precision</div>
+                    <div id="precision-value" class="metric-value">0.00</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Recall</div>
+                    <div id="recall-value" class="metric-value">0.00</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">F1 Score</div>
+                    <div id="f1-score-value" class="metric-value">0.00</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+// DOM元素 - 选项卡
+const singleImageTab = document.getElementById('single-image-tab');
+const datasetTab = document.getElementById('dataset-tab');
+const singleImageContent = document.getElementById('single-image-content');
+const datasetContent = document.getElementById('dataset-content');
+
+// DOM元素 - 单图像模式
+const dropArea = document.getElementById('drop-area');
+const fileInput = document.getElementById('file-input');
+const imagePreview = document.getElementById('image-preview');
+const previewImg = document.getElementById('preview-img');
+const resultsDiv = document.getElementById('results');
+const chartContainer = document.getElementById('chart-container');
+const chartCanvas = document.getElementById('chart');
+const modelSelect = document.getElementById('model-select');
+const centerCropCheckbox = document.getElementById('center-crop');
+const resizeCheckbox = document.getElementById('resize');
+const preprocessingError = document.getElementById('preprocessing-error');
+const predictBtn = document.getElementById('predict-btn');
+
+// DOM元素 - 数据集模式
+const datasetUploadArea = document.getElementById('dataset-upload-area');
+const folderInput = document.getElementById('folder-input');
+const datasetPreview = document.getElementById('dataset-preview');
+const realImagesPreview = document.getElementById('real-images-preview');
+const fakeImagesPreview = document.getElementById('fake-images-preview');
+const datasetInfo = document.getElementById('dataset-info');
+const datasetModelSelect = document.getElementById('dataset-model-select');
+const datasetCenterCropCheckbox = document.getElementById('dataset-center-crop');
+const datasetResizeCheckbox = document.getElementById('dataset-resize');
+const batchSizeSelect = document.getElementById('batch-size');
+const datasetPreprocessingError = document.getElementById('dataset-preprocessing-error');
+const evaluateBtn = document.getElementById('evaluate-btn');
+const progressContainer = document.getElementById('progress-container');
+const progressFill = document.getElementById('progress-fill');
+const progressText = document.getElementById('progress-text');
+const datasetResults = document.getElementById('dataset-results');
+const evaluationResults = document.getElementById('evaluation-results');
+const precisionValue = document.getElementById('precision-value');
+const recallValue = document.getElementById('recall-value');
+const f1ScoreValue = document.getElementById('f1-score-value');
+
+// 获取CSS变量
+const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+
+// 存储上传的文件
+let uploadedFile = null;
+
+// 存储数据集文件
+let datasetFiles = {
+    real: [],
+    fake: []
+};
+
+// 选项卡切换
+singleImageTab.addEventListener('click', () => {
+    singleImageTab.classList.add('active');
+    datasetTab.classList.remove('active');
+    singleImageContent.classList.remove('hidden');
+    datasetContent.classList.add('hidden');
+});
+
+datasetTab.addEventListener('click', () => {
+    datasetTab.classList.add('active');
+    singleImageTab.classList.remove('active');
+    datasetContent.classList.remove('hidden');
+    singleImageContent.classList.add('hidden');
+});
+
+// 动态填充模型选项 - 两个选择器共用相同的模型列表
+function populateModelSelects() {
+    fetch('/fakedetect/models/')
+        .then(response => response.json())
+        .then(data => {
+            // 清空现有选项
+            modelSelect.innerHTML = '';
+            datasetModelSelect.innerHTML = '';
+            
+            data.models.forEach(model => {
+                // 为单图像模式添加选项
+                const option1 = document.createElement('option');
+                option1.value = model.name;
+                option1.textContent = model.name;
+                modelSelect.appendChild(option1);
+                
+                // 为数据集模式添加相同的选项
+                const option2 = document.createElement('option');
+                option2.value = model.name;
+                option2.textContent = model.name;
+                datasetModelSelect.appendChild(option2);
+            });
+        })
+        .catch(err => {
+            console.error('Error loading models:', err);
+            // 添加一些默认选项，以防API调用失败
+            const defaultOption1 = document.createElement('option');
+            defaultOption1.value = 'default_model';
+            defaultOption1.textContent = 'Default Model';
+            modelSelect.appendChild(defaultOption1);
+            
+            const defaultOption2 = document.createElement('option');
+            defaultOption2.value = 'default_model';
+            defaultOption2.textContent = 'Default Model';
+            datasetModelSelect.appendChild(defaultOption2);
+        });
+}
+
+// 页面加载时填充模型选项
+document.addEventListener('DOMContentLoaded', populateModelSelects);
+
+// ==================== 单图像模式 ====================
+
+// 验证预处理选项
+function validatePreprocessingOptions() {
+    if (!centerCropCheckbox.checked && !resizeCheckbox.checked) {
+        preprocessingError.classList.remove('hidden');
+        return false;
+    }
+    preprocessingError.classList.add('hidden');
+    return true;
+}
+
+// 检查是否可以启用预测按钮
+function updatePredictButtonState() {
+    predictBtn.disabled = !(uploadedFile && validatePreprocessingOptions());
+}
+
+// 添加预处理选项变更监听
+centerCropCheckbox.addEventListener('change', () => {
+    validatePreprocessingOptions();
+    updatePredictButtonState();
+});
+
+resizeCheckbox.addEventListener('change', () => {
+    validatePreprocessingOptions();
+    updatePredictButtonState();
+});
+
+// 文件拖放区域事件
+dropArea.addEventListener('click', () => fileInput.click());
+
+dropArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropArea.style.backgroundColor = '#f9f9f9';
+    dropArea.style.borderColor = primaryColor;
+});
+
+dropArea.addEventListener('dragleave', () => {
+    dropArea.style.backgroundColor = '';
+    dropArea.style.borderColor = '';
+});
+
+dropArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropArea.style.backgroundColor = '';
+    dropArea.style.borderColor = '';
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type.startsWith('image/')) {
+        handleImageUpload(files[0]);
+    }
+});
+
+fileInput.addEventListener('change', (e) => {
+    const files = e.target.files;
+    if (files.length > 0) {
+        handleImageUpload(files[0]);
+    }
+});
+
+// 处理图片上传
+function handleImageUpload(file) {
+    if (!file.type.startsWith('image/')) {
+        resultsDiv.innerHTML = 'Please upload a valid image file.';
+        return;
+    }
+    
+    uploadedFile = file;
+    
+    // 显示图片预览
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        previewImg.src = e.target.result;
+        imagePreview.classList.remove('hidden');
+        dropArea.classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
+    
+    // 重置结果和图表
+    resultsDiv.innerHTML = 'Image uploaded. Click "Predict" to analyze.';
+    chartContainer.classList.add('hidden');
+    
+    updatePredictButtonState();
+}
+
+// 重新上传图片
+function resetUpload() {
+    uploadedFile = null;
+    imagePreview.classList.add('hidden');
+    dropArea.classList.remove('hidden');
+    fileInput.value = '';
+    resultsDiv.innerHTML = 'Upload an image and click "Predict" to analyze';
+    chartContainer.classList.add('hidden');
+    updatePredictButtonState();
+}
+
+// 添加点击预览图片可重新上传的功能
+imagePreview.addEventListener('click', resetUpload);
+imagePreview.setAttribute('title', 'Click to remove and upload a new image');
+
+// 预测按钮点击事件
+predictBtn.addEventListener('click', () => {
+    if (!validatePreprocessingOptions() || !uploadedFile) {
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('files', uploadedFile);
+    
+    // 添加当前参数
+    formData.append('model', modelSelect.value);
+    formData.append('center_crop', centerCropCheckbox.checked);
+    formData.append('resize', resizeCheckbox.checked);
+    
+    // 显示处理中状态
+    resultsDiv.innerHTML = '<p>Processing...</p>';
+    predictBtn.disabled = true;
+    
+    fetch('/fakedetect/predict/', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        resultsDiv.innerHTML = data.message;
+        if (data.chartData) {
+            renderChart(data.chartData);
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        resultsDiv.innerHTML = 'Error processing the request: ' + err.message;
+    })
+    .finally(() => {
+        predictBtn.disabled = false;
+    });
+});
+
+// 渲染图表
+let chartInstance = null;
+
+function renderChart(chartData) {
+    const ctx = chartCanvas.getContext('2d');
+    
+    // 如果已经有一个图表实例，销毁它
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+    
+    // 显示图表容器
+    chartContainer.classList.remove('hidden');
+    
+    // 创建新的图表实例
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Real', 'Fake'],
+            datasets: [{
+                label: 'Probability',
+                data: chartData,
+                backgroundColor: ['#2ecc71', '#e74c3c'],
+                borderColor: ['#27ae60', '#c0392b'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1,
+                    ticks: {
+                        callback: function(value) {
+                            return (value * 100) + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return (context.raw * 100).toFixed(1) + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ==================== 数据集模式 ====================
+
+// 验证数据集预处理选项
+function validateDatasetPreprocessingOptions() {
+    if (!datasetCenterCropCheckbox.checked && !datasetResizeCheckbox.checked) {
+        datasetPreprocessingError.classList.remove('hidden');
+        return false;
+    }
+    datasetPreprocessingError.classList.add('hidden');
+    return true;
+}
+
+// 检查是否可以启用评估按钮
+function updateEvaluateButtonState() {
+    evaluateBtn.disabled = !((datasetFiles.real.length > 0 && datasetFiles.fake.length > 0) && validateDatasetPreprocessingOptions());
+}
+
+// 添加数据集预处理选项变更监听
+datasetCenterCropCheckbox.addEventListener('change', () => {
+    validateDatasetPreprocessingOptions();
+    updateEvaluateButtonState();
+});
+
+datasetResizeCheckbox.addEventListener('change', () => {
+    validateDatasetPreprocessingOptions();
+    updateEvaluateButtonState();
+});
+
+// 数据集上传区域事件
+datasetUploadArea.addEventListener('click', () => folderInput.click());
+
+// 处理数据集文件上传
+folderInput.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    
+    if (files.length === 0) {
+        datasetResults.innerHTML = 'No files selected.';
+        return;
+    }
+    
+    // 清空之前的数据集
+    datasetFiles = {
+        real: [],
+        fake: []
+    };
+    
+    // 获取文件夹结构
+    const folderPaths = files.map(file => file.webkitRelativePath.split('/'));
+    const rootFolder = folderPaths[0][0];
+    
+    // 检查是否有real和fake子文件夹
+    let hasRealFolder = false;
+    let hasFakeFolder = false;
+    const subfolders = new Set();
+    
+    folderPaths.forEach(path => {
+        if (path.length > 1) {
+            subfolders.add(path[1].toLowerCase());
+        }
+    });
+    
+    // 查找包含"real"和"fake"的文件夹
+    let realFolderName = '';
+    let fakeFolderName = '';
+    
+    subfolders.forEach(folder => {
+        if (folder.includes('real')) {
+            hasRealFolder = true;
+            realFolderName = folder;
+        }
+        if (folder.includes('fake')) {
+            hasFakeFolder = true;
+            fakeFolderName = folder;
+        }
+    });
+    
+    if (!hasRealFolder || !hasFakeFolder) {
+        datasetResults.innerHTML = 'Dataset must contain both "real" and "fake" subfolders.';
+        return;
+    }
+    
+    // 分类文件
+    files.forEach(file => {
+        const path = file.webkitRelativePath.split('/');
+        if (path.length > 1) {
+            const subfolder = path[1].toLowerCase();
+            
+            // 只处理图像文件
+            if (file.type.startsWith('image/')) {
+                if (subfolder === realFolderName) {
+                    datasetFiles.real.push(file);
+                } else if (subfolder === fakeFolderName) {
+                    datasetFiles.fake.push(file);
+                }
+            }
+        }
+    });
+    
+    // 检查是否有足够的图像
+    if (datasetFiles.real.length === 0 || datasetFiles.fake.length === 0) {
+        datasetResults.innerHTML = 'Both "real" and "fake" folders must contain image files.';
+        return;
+    }
+    
+    // 显示数据集预览
+    showDatasetPreview();
+    
+    // 更新评估按钮状态
+    updateEvaluateButtonState();
+});
+
+// 显示数据集预览
+function showDatasetPreview() {
+    // 清空预览区域
+    realImagesPreview.innerHTML = '';
+    fakeImagesPreview.innerHTML = '';
+    
+    // 显示真实图像预览（最多5张）
+    const realPreviewCount = Math.min(5, datasetFiles.real.length);
+    for (let i = 0; i < realPreviewCount; i++) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(datasetFiles.real[i]);
+        img.alt = `Real image ${i+1}`;
+        realImagesPreview.appendChild(img);
+    }
+    
+    // 显示虚假图像预览（最多5张）
+    const fakePreviewCount = Math.min(5, datasetFiles.fake.length);
+    for (let i = 0; i < fakePreviewCount; i++) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(datasetFiles.fake[i]);
+        img.alt = `Fake image ${i+1}`;
+        fakeImagesPreview.appendChild(img);
+    }
+    
+    // 显示数据集信息
+    datasetInfo.innerHTML = `
+        <p><strong>Dataset Summary:</strong></p>
+        <p>Real images: ${datasetFiles.real.length}</p>
+        <p>Fake images: ${datasetFiles.fake.length}</p>
+        <p>Total images: ${datasetFiles.real.length + datasetFiles.fake.length}</p>
+    `;
+    
+    // 显示预览区域
+    datasetPreview.classList.remove('hidden');
+    datasetUploadArea.classList.add('hidden');
+    
+    // 更新结果区域
+    datasetResults.innerHTML = 'Dataset loaded. Click "Evaluate Dataset" to analyze.';
+    
+    // 隐藏之前的评估结果
+    evaluationResults.classList.add('hidden');
+}
+
+// 重置数据集上传
+function resetDatasetUpload() {
+    datasetFiles = {
+        real: [],
+        fake: []
+    };
+    
+    datasetPreview.classList.add('hidden');
+    datasetUploadArea.classList.remove('hidden');
+    folderInput.value = '';
+    datasetResults.innerHTML = 'Upload a dataset and click "Evaluate Dataset" to analyze';
+    evaluationResults.classList.add('hidden');
+    progressContainer.classList.add('hidden');
+    
+    updateEvaluateButtonState();
+}
+
+// 添加点击预览可重新上传的功能
+datasetPreview.addEventListener('click', resetDatasetUpload);
+datasetPreview.setAttribute('title', 'Click to remove and upload a new dataset');
+
+// 评估按钮点击事件
+evaluateBtn.addEventListener('click', async () => {
+    if (!validateDatasetPreprocessingOptions() || datasetFiles.real.length === 0 || datasetFiles.fake.length === 0) {
+        return;
+    }
+    
+    // 获取参数
+    const model = datasetModelSelect.value;
+    const centerCrop = datasetCenterCropCheckbox.checked;
+    const resize = datasetResizeCheckbox.checked;
+    const batchSize = parseInt(batchSizeSelect.value);
+    
+    // 显示处理中状态
+    datasetResults.innerHTML = '<p>Processing dataset...</p>';
+    evaluateBtn.disabled = true;
+    progressContainer.classList.remove('hidden');
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Processing: 0%';
+    
+    // 合并所有图像，并添加标签信息
+    const allImages = [
+        ...datasetFiles.real.map(file => ({ file, isReal: true })),
+        ...datasetFiles.fake.map(file => ({ file, isReal: false }))
+    ];
+    
+    // 存储所有预测结果
+    const allResults = [];
+    
+    try {
+        // 分批处理图像
+        const totalBatches = Math.ceil(allImages.length / batchSize);
+        
+        for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+            // 获取当前批次的图像
+            const start = batchIndex * batchSize;
+            const end = Math.min(start + batchSize, allImages.length);
+            const batchImages = allImages.slice(start, end);
+            
+            // 创建FormData对象
+            const formData = new FormData();
+            batchImages.forEach(item => {
+                formData.append('files', item.file);
+            });
+            
+            // 添加参数
+            formData.append('model', model);
+            formData.append('center_crop', centerCrop);
+            formData.append('resize', resize);
+            
+            // 发送请求
+            const response = await fetch('/fakedetect/predict/', {
+                method: 'POST',
+                body: formData,
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Network error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // 将批次结果与原始标签合并
+            if (data.results && Array.isArray(data.results)) {
+                // 将每个结果与对应的真实标签关联
+                for (let i = 0; i < data.results.length; i++) {
+                    allResults.push({
+                        ...data.results[i],
+                        trueLabel: batchImages[i].isReal ? 0 : 1 // 0表示真实，1表示虚假
+                    });
+                }
+            }
+            
+            // 更新进度
+            const progress = Math.round(((batchIndex + 1) / totalBatches) * 100);
+            progressFill.style.width = `${progress}%`;
+            progressText.textContent = `Processing: ${progress}%`;
+        }
+        
+        // 从结果中提取预测和真实标签
+        const predictions = allResults.map(result => result.probability > 0.5 ? 1 : 0);
+        const trueLabels = allResults.map(result => result.trueLabel);
+        
+        // 计算指标
+        const metrics = calculateMetrics(predictions, trueLabels);
+        
+        // 显示结果
+        precisionValue.textContent = metrics.precision.toFixed(2);
+        recallValue.textContent = metrics.recall.toFixed(2);
+        f1ScoreValue.textContent = metrics.f1Score.toFixed(2);
+        
+        evaluationResults.classList.remove('hidden');
+        datasetResults.innerHTML = 'Dataset evaluation completed.';
+        
+    } catch (error) {
+        console.error('Error during dataset evaluation:', error);
+        datasetResults.innerHTML = `Error: ${error.message}`;
+    } finally {
+        evaluateBtn.disabled = false;
+    }
+});
+
+// 计算评估指标
+function calculateMetrics(predictions, trueLabels) {
+    // 初始化混淆矩阵
+    let truePositives = 0;
+    let falsePositives = 0;
+    let trueNegatives = 0;
+    let falseNegatives = 0;
+    
+    // 填充混淆矩阵
+    for (let i = 0; i < predictions.length; i++) {
+        if (predictions[i] === 1 && trueLabels[i] === 1) {
+            truePositives++;
+        } else if (predictions[i] === 1 && trueLabels[i] === 0) {
+            falsePositives++;
+        } else if (predictions[i] === 0 && trueLabels[i] === 0) {
+            trueNegatives++;
+        } else if (predictions[i] === 0 && trueLabels[i] === 1) {
+            falseNegatives++;
+        }
+    }
+    
+    // 计算指标
+    const precision = truePositives / (truePositives + falsePositives) || 0;
+    const recall = truePositives / (truePositives + falseNegatives) || 0;
+    const f1Score = 2 * precision * recall / (precision + recall) || 0;
+    
+    return {
+        precision,
+        recall,
+        f1Score
+    };
+}
+    </script>
+</body>
+</html>
